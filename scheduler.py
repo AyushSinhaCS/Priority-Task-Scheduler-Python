@@ -2,50 +2,45 @@ import heapq
 
 class TaskScheduler:
     def __init__(self):
-        # The heap stores tasks as [-priority, task_id, name]
-        # We use negative priority because heapq is a Min-Heap by default
-        self.priority_heap = []
-        self.task_lookup = {}  # Hash Map for O(1) retrieval
+        self.priority_heap = []  # Binary Heap (Priority Queue)
+        self.task_map = {}       # Hash Map for O(1) task retrieval
+        self.REMOVED = '<removed-task>' # Placeholder for deleted tasks
 
     def add_task(self, task_id, name, priority):
-        """Adds a task with O(log N) complexity."""
-        # Negative priority to simulate Max-Heap
-        task_entry = [-priority, task_id, name]
-        heapq.heappush(self.priority_heap, task_entry)
-        self.task_lookup[task_id] = name
-        print(f"✅ Added Task: {name} (Priority: {priority})")
+        """Adds a task or updates its priority (Priority Update)."""
+        if task_id in self.task_map:
+            self.remove_task(task_id) # Mark old task as removed
+        
+        # Priority is negated for Max-Heap behavior
+        entry = [-priority, task_id, name]
+        self.task_map[task_id] = entry
+        heapq.heappush(self.priority_heap, entry)
+        print(f"✅ Added/Updated: {name} (Priority: {priority})")
+
+    def remove_task(self, task_id):
+        """Marks a task as removed (Efficient Deletion)."""
+        entry = self.task_map.pop(task_id, None)
+        if entry:
+            entry[-1] = self.REMOVED # Invalidate the entry in the heap
 
     def execute_next(self):
-        """Removes and returns the highest priority task in O(log N)."""
-        if not self.priority_heap:
-            print("⚠️ No tasks in the queue.")
-            return None
-        
-        neg_priority, task_id, name = heapq.heappop(self.priority_heap)
-        del self.task_lookup[task_id]
-        print(f"🚀 Executing: {name} [ID: {task_id}] with Priority: {-neg_priority}")
-        return name
+        """Executes the highest priority task in O(log N)."""
+        while self.priority_heap:
+            priority, task_id, name = heapq.heappop(self.priority_heap)
+            if name is not self.REMOVED:
+                del self.task_map[task_id]
+                print(f"🚀 Executing: {name} (ID: {task_id}) [Priority: {-priority}]")
+                return name
+        print("⚠️ Queue is empty.")
+        return None
 
-    def get_task(self, task_id):
-        """Retrieves task details in O(1) average time."""
-        task_name = self.task_lookup.get(task_id)
-        if task_name:
-            print(f"🔍 Found Task {task_id}: {task_name}")
-        else:
-            print(f"❌ Task ID {task_id} not found.")
-
-# --- Simulation ---
+# Simulation
 if __name__ == "__main__":
     scheduler = TaskScheduler()
+    scheduler.add_task(101, "Fix Critical Bug", 10)
+    scheduler.add_task(102, "Documentation", 2)
     
-    # Adding tasks (Urgency based)
-    scheduler.add_task(1, "Critical System Update", 10)
-    scheduler.add_task(2, "Routine Database Cleanup", 3)
-    scheduler.add_task(3, "Security Firewall Patch", 8)
-
-    # Retrieval check (O(1))
-    scheduler.get_task(1)
-
-    # Execution check (Highest priority first)
-    scheduler.execute_next()  # Should be Priority 10
-    scheduler.execute_next()  # Should be Priority 8
+    # Priority Update (As per your CV)
+    scheduler.add_task(102, "Urgent Documentation", 15) 
+    
+    scheduler.execute_next() # Will execute ID 102 first because it was updated to 15
